@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -23,6 +24,8 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
+
+static struct list sleep_list;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -92,6 +95,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -545,6 +549,30 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
+void
+thread_sleep(void) {
+  struct thread *t = thread_current();
+  list_push_front(&sleep_list, &t->elem);
+  thread_block();
+}
+
+void
+thread_wakeup(void) {
+  struct list_elem *e;
+  int64_t current_time = timer_ticks();
+
+  for(e = list_begin(&sleep_list); e != list_end(&sleep_list);) {
+    struct thread *t = list_entry(e, struct thread, elem);
+    if (t->timesleep <= current_time) {
+      e = list_remove(e);
+      thread_unblock(t);
+    } else {
+      e = list_next(e);
+    }
+  }
+
+}
+
 /* Schedules a new process.  At entry, interrupts must be off and
    the running process's state must have been changed from
    running to some other state.  This function finds another
@@ -555,6 +583,7 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void) 
 {
+  thread_wakeup();
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
