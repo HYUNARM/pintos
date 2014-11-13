@@ -90,16 +90,12 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    int64_t timesleep;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    struct lock *trying_lock;
-    struct list holding_locks;
-
-    int original_priority;
-    int donated_level;
-
+    int64_t wakeup;                     /* only used for sleep */
+    
+    struct list lock_list;              /* list of held locks */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -133,8 +129,6 @@ const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
-void thread_sleep (void);
-void thread_wakeup (void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
@@ -148,5 +142,13 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+void sleep_add (int64_t wakeup);
+
+bool thread_cmp_wakeup (const struct list_elem *a,
+                        const struct list_elem *b,
+                        void *aux);
+bool thread_cmp_priority (const struct list_elem *a,
+                          const struct list_elem *b,
+                          void *aux);
 
 #endif /* threads/thread.h */
