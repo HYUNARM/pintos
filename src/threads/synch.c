@@ -204,12 +204,12 @@ lock_acquire (struct lock *lock)
 
     curr->trying_lock = lock;
 
-  // lock_donation (lock);
+  lock_donation (lock);
 
   sema_down (&lock->semaphore);
   lock->holder = curr;
 
-  //list_insert_ordered(&curr->holding_locks, &curr->trying_lock->elem, check_priority, NULL);
+  list_insert_ordered(&curr->holding_locks, &curr->trying_lock->elem, check_priority, NULL);
   curr->trying_lock = NULL;
 
 }
@@ -277,8 +277,8 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  //list_remove (&lock->elem);
-  //lock_donation_rollback (lock);
+  list_remove (&lock->elem);
+  lock_donation_rollback (lock);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
@@ -300,7 +300,7 @@ lock_donation_rollback (struct lock* lock)
 
       if(curr->priority == donor_thread->priority)
       {
-        if (curr->donated_level > 0)
+        if (curr->donated_level == 1)
         {
           curr->priority = curr->original_priority;
           curr->donated_level--;
