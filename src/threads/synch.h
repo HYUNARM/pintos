@@ -9,6 +9,7 @@ struct semaphore
   {
     unsigned value;             /* Current value. */
     struct list waiters;        /* List of waiting threads. */
+    int max_priority_waiter;
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -22,6 +23,7 @@ struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
+    struct list_elem elem;
   };
 
 void lock_init (struct lock *);
@@ -47,5 +49,8 @@ void cond_broadcast (struct condition *, struct lock *);
    optimization barrier.  See "Optimization Barriers" in the
    reference guide for more information.*/
 #define barrier() asm volatile ("" : : : "memory")
+
+void lock_donation (struct lock* );
+void lock_donation_rollback (struct lock* );
 
 #endif /* threads/synch.h */
